@@ -5,6 +5,10 @@ import os
 import psycopg2
 import json
 
+from airflow import DAG
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.bash import BashOperator
+
 
 # Variables and constants
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -90,3 +94,46 @@ raw_json(raw_data, data_path + raw_file)
 raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
 weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
 add_weather_data(weather_df)
+
+
+# DAG
+with DAG("weather_dag", start_date=datetime(2023, 2, 2),
+    schedule_interval=None, catchup=False) as dag:
+
+        read_weather = PythonOperator(
+            task_id="request_weather",
+            python_callable=request_weather_data
+        )
+        read_weather = PythonOperator(
+            task_id="raw_json",
+            python_callable=raw_json
+        )
+        read_weather = PythonOperator(
+            task_id="raw_to_harmonized",
+            python_callable=raw_to_harmonized
+        )
+        read_weather = PythonOperator(
+            task_id="harmonized_to_cleansed",
+            python_callable=harmonized_to_cleansed
+        )
+        read_weather = PythonOperator(
+            task_id="add_weather_data",
+            python_callable=add_weather_data
+        )
+
+        #control_weather_file = BranchPythonOperator(
+        #    task_id="control_weather_file",
+        #    python_callable=_control_weather_file
+        #)
+
+        read_OK = BashOperator(
+            task_id="read_OK",
+            bash_command="echo 'read_OK'"
+        )
+
+        read_failed = BashOperator(
+            task_id="read_failed",
+            bash_command="echo 'read_failed'"
+        )
+
+        [request_weather] >> [raw_json] >> [raw_to_harmonized] >> [harmonized_to_cleansed] >> [add_weather_data]
