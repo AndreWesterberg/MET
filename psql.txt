@@ -1,0 +1,8 @@
+-- Kör detta i psql
+create database weather_db;
+grant all privileges on database archprep to postgres;
+alter database weather_db owner to postgres;
+\c weather_db
+create schema cleansed;
+create schema staged;
+create schema modelled;

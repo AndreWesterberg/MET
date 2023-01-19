@@ -2,7 +2,7 @@
 import requests
 import pandas as pd
 import os 
-import sqlalchemy
+import sqlalchemy # ta kanske bort denna
 import psycopg2
 import json
 
@@ -18,16 +18,18 @@ column_names = ['time', 'air_pressure_at_sea_level', 'air_temperature', 'cloud_a
 
 
 # Functions
-
+# Takes the url for the API and returns the raw weather data
 def request_weather_data(url):
     r = requests.get(url, headers={'User-Agent': 'Andrewest'})
     return r.json()
 
-def raw_json(response_object, save_path):
+# Saves the raw data to a json file
+def raw_json(raw_data, save_path):
     f = open(save_path, "w")
-    json.dump(response_object, f)
+    json.dump(raw_data, f)
     f.close()
 
+# Load the raw data and start excluding unnessesary data, and transforming the usfull data to a nicer format (harmonized data)
 def raw_to_harmonized(load_path, save_path):
     f = open(load_path)
     raw = f.readline()
@@ -39,22 +41,37 @@ def raw_to_harmonized(load_path, save_path):
     #keys = df.keys()
     df.to_json(save_path)
 
-# To do remove NaN values
-def harmonized_to_cleansed(load_path, save_path, column_names):
+# Take the harmonized data, removing the NaN values and saving the cleansed data to a json and returning the cleansed dataframe
+def harmonized_to_cleansed(load_path, save_path):
     df = pd.read_json(load_path)
-    #df2 = pd.DataFrame(df, columns=column_names)
-    print(df.tail())
+    print(df.keys())
+    df.dropna(inplace=True)
+    print(df)
+    df.to_json(save_path)
+    return df
 
-def connect_db():
-    # db address + port + usr + pswd + schema
-    pass
+# Creates a connection to the database
+def get_db_connection():
+    conn = psycopg2.connect(
+        host="localhost",
+        port="5432",
+        database="weather_db",
+        user="postgres",
+        password="***")    # Change to your own pgAdmin postgres user password
+    return conn
 
-def clensed_to_db(load_path):
-    pass
+# Adds the weatherdata from the dataframe to the database
+def add_weather_data(df):
+    con = get_db_connection()
+    cur = con.cursor()
+    cur.execute(f"INSERT INTO cleansed.weather VALUES ({'time'}, 'air_pressure_at_sea_level', 'air_temperature', 'cloud_area_fraction', 'relative_humidity', 'wind_from_direction', 'wind_speed', '12h_symbol_code', '1h_symbol_code', '1h_precipitation_amount', '6h_symbol_code', '6h_precipitation_amount';")
+    cur.execute("COMMIT;")
+    cur.close()
+    con.close()
 
 
 # Main program
-response = request_weather_data(url)
+raw_data = request_weather_data(url)
 raw_json(response, data_path + raw_file)
 raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
-harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file, column_names)
+weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
