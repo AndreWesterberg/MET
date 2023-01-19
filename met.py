@@ -8,6 +8,7 @@ import json
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.bash import BashOperator
+from datetime import datetime
 
 
 # Variables and constants
@@ -58,7 +59,7 @@ def get_db_connection():
         port="5432",
         database="weather_db",
         user="postgres",
-        password="Andre9119")    # Change to your own pgAdmin postgres user password
+        password="123456")    # Change to your own pgAdmin postgres user password
     return conn
 
 # Adds the weatherdata from the dataframe to the database
@@ -86,54 +87,70 @@ def add_weather_data(df):
     cur.close()
     conn.close()
 
+def request_w_d():
+    url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.10&lon=9.58"
+    raw_data = request_weather_data(url)
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    data_path = current_path + "//data" 
+    raw_file = "//raw.json"
+    raw_json(raw_data, data_path + raw_file)
+    return raw_data
+
+def r_t_h():
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    data_path = current_path + "//data" 
+    raw_file = "//raw.json"
+    harmonized_file = "//harmonized.json"
+    raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
+    return True
+
+def h_t_c():
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    data_path = current_path + "//data" 
+    harmonized_file = "//harmonized.json"
+    cleansed_file = "//cleansed.json"
+    weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
+    add_weather_data(weather_df)
+
 
 
 # Main program
-raw_data = request_weather_data(url)
-raw_json(raw_data, data_path + raw_file)
-raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
-weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
-add_weather_data(weather_df)
+request_w_d()
+r_t_h()
+h_t_c()
+#raw_data = request_weather_data(url)
+#raw_json(raw_data, data_path + raw_file)
+#raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
+#weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
+#add_weather_data(weather_df)
 
 
 # DAG
-with DAG("weather_dag", start_date=datetime(2023, 2, 2),
+with DAG("met", start_date=datetime(2022, 2, 2),
     schedule_interval=None, catchup=False) as dag:
 
-        read_weather = PythonOperator(
-            task_id="request_weather",
-            python_callable=request_weather_data
+        task_1 = PythonOperator(
+            task_id="request_weather_data",
+            python_callable=request_w_d
+#            provide_context=True,
+#            params={'param_1':'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.10&lon=9.58'}
         )
-        read_weather = PythonOperator(
-            task_id="raw_json",
-            python_callable=raw_json
-        )
-        read_weather = PythonOperator(
+        task_2 = PythonOperator(
             task_id="raw_to_harmonized",
-            python_callable=raw_to_harmonized
+            python_callable=r_t_h
         )
-        read_weather = PythonOperator(
+        task_3 = PythonOperator(
             task_id="harmonized_to_cleansed",
-            python_callable=harmonized_to_cleansed
+            python_callable=h_t_c
         )
-        read_weather = PythonOperator(
-            task_id="add_weather_data",
-            python_callable=add_weather_data
-        )
-
-        #control_weather_file = BranchPythonOperator(
-        #    task_id="control_weather_file",
-        #    python_callable=_control_weather_file
-        #)
-
         read_OK = BashOperator(
             task_id="read_OK",
             bash_command="echo 'read_OK'"
         )
-
         read_failed = BashOperator(
             task_id="read_failed",
             bash_command="echo 'read_failed'"
         )
 
-        [request_weather] >> [raw_json] >> [raw_to_harmonized] >> [harmonized_to_cleansed] >> [add_weather_data]
+        # [request_weather_data, raw_json, raw_to_harmonized, harmonized_to_cleansed] # >> [add_weather_data]
+        task_1  >> task_2 >> task_3
