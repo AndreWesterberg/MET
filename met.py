@@ -10,6 +10,7 @@ from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
 """
+
 # Functions
 # Takes the url for the API and returns the raw weather data
 def request_weather_data(url):
@@ -52,13 +53,13 @@ def get_db_connection():
     return conn
 
 # Adds the weatherdata from the dataframe to the database
-def add_weather_data(df):
+def add_weather_data(df, city):
     conn = get_db_connection()
     cur = conn.cursor()
     for i in range(len(df)):
         row = df.iloc[i]
         cur.execute(
-            f"INSERT INTO cleansed.weather VALUES ( \
+            f"INSERT INTO cleansed.weather_{city} VALUES ( \
                 '{row['time']}', \
                 '{row['data.instant.details.air_pressure_at_sea_level']}', \
                 '{row['data.instant.details.air_temperature']}', \
@@ -77,29 +78,38 @@ def add_weather_data(df):
     conn.close()
 
 def request_w_d():
-    url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.10&lon=9.58"
-    raw_data = request_weather_data(url)
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    data_path = current_path + "//data" 
-    raw_file = "//raw.json"
-    raw_json(raw_data, data_path + raw_file)
-    return raw_data
+    city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
+    latitude = [59.34, 57.72, 55.61, 60.39, 64.13]
+    longitude = [18.07, 11.99, 12.99, 5.32, 21.82]
+    #raw_list = []
+    for i in range(len(city)):
+        url = f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={latitude[i]}&lon={longitude[i]}"
+        raw_data = request_weather_data(url)
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        data_path = current_path + "//data" 
+        raw_file = f"//raw_{city[i]}.json"
+        raw_json(raw_data, data_path + raw_file)
+        #raw_list.append(raw_data)
+#    return raw_list
 
 def r_t_h():
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    data_path = current_path + "//data" 
-    raw_file = "//raw.json"
-    harmonized_file = "//harmonized.json"
-    raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
-    return True
+    city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
+    for i in range(len(city)):
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        data_path = current_path + "//data" 
+        raw_file = f"//raw_{city[i]}.json"
+        harmonized_file = f"//harmonized_{city[i]}.json"
+        raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
 
 def h_t_c():
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    data_path = current_path + "//data" 
-    harmonized_file = "//harmonized.json"
-    cleansed_file = "//cleansed.json"
-    weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
-    add_weather_data(weather_df)
+    city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
+    for i in range(len(city)):
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        data_path = current_path + "//data" 
+        harmonized_file = f"//harmonized_{city[i]}.json"
+        cleansed_file = f"//cleansed_{city[i]}.json"
+        weather_df = harmonized_to_cleansed(data_path + harmonized_file, data_path + cleansed_file)
+        add_weather_data(weather_df, city[i])
 
 
 
