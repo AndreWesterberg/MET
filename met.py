@@ -4,17 +4,17 @@ import pandas as pd
 import os 
 import psycopg2
 import json
-"""
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
-"""
+
 
 # Functions
 # Takes the url for the API and returns the raw weather data
 def request_weather_data(url):
-    r = requests.get(url, headers={'User-Agent': 'Andrewest'})
+    r = requests.get(url, headers={'User-Agent': 'big_data_energy'})
     return r.json()
 
 # Saves the raw data to a json file
@@ -81,7 +81,6 @@ def request_w_d():
     city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
     latitude = [59.34, 57.72, 55.61, 60.39, 64.13]
     longitude = [18.07, 11.99, 12.99, 5.32, 21.82]
-    #raw_list = []
     for i in range(len(city)):
         url = f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={latitude[i]}&lon={longitude[i]}"
         raw_data = request_weather_data(url)
@@ -89,8 +88,6 @@ def request_w_d():
         data_path = current_path + "//data" 
         raw_file = f"//raw_{city[i]}.json"
         raw_json(raw_data, data_path + raw_file)
-        #raw_list.append(raw_data)
-#    return raw_list
 
 def r_t_h():
     city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
@@ -119,10 +116,10 @@ r_t_h()
 h_t_c()
 
 
-"""
+
 # DAG
-with DAG("met", start_date=datetime(2022, 2, 2),
-    schedule_interval=None, catchup=False) as dag:
+with DAG("met", start_date=datetime(2023, 2, 2),
+    schedule_interval="0 0 * * *", catchup=False) as dag:
 
         task_1 = PythonOperator(
             task_id="request_weather_data",
@@ -136,12 +133,4 @@ with DAG("met", start_date=datetime(2022, 2, 2),
             task_id="harmonized_to_cleansed",
             python_callable=h_t_c
         )
-        read_OK = BashOperator(
-            task_id="read_OK",
-            bash_command="echo 'read_OK'"
-        )
-        read_failed = BashOperator(
-            task_id="read_failed",
-            bash_command="echo 'read_failed'"
-        )
-        task_1  >> task_2 >> task_3 """
+        task_1  >> task_2 >> task_3

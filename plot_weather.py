@@ -1,8 +1,6 @@
 # Imoprts
 import pandas as pd
 import psycopg2
-from plotly import express as px
-from plotly.subplots import make_subplots
 from plotly import graph_objects as go
 
 city_list = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
