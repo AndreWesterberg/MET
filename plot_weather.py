@@ -66,7 +66,7 @@ def temperature_plot(df_list, city_list):
 def precipitation_plot(df_list, city_list):
     figure = go.Figure()
     for i in range(len(df_list)):
-        figure.add_trace(go.Scatter(x=df_list[i]["time"], y=df_list[i]["1h precipitation amount"], name=city_list[i], mode='lines'))
+        figure.add_trace(go.Bar(x=df_list[i]["time"], y=df_list[i]["1h precipitation amount"], name=city_list[i]))
     figure.update_layout(
         font_family = "Arial",
         font_color = "#000000",

@@ -49,7 +49,7 @@ def get_db_connection():
         port="5432",
         database="weather_db",
         user="postgres",
-        password="***")    # Change to your own pgAdmin postgres user password
+        password="Andre9119")    # Change to your own pgAdmin postgres user password
     return conn
 
 # Adds the weatherdata from the dataframe to the database
@@ -134,3 +134,4 @@ with DAG("met", start_date=datetime(2023, 2, 2),
             python_callable=load_data
         )
         task_1  >> task_2 >> task_3
+
