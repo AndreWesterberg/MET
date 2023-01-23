@@ -49,7 +49,7 @@ def get_db_connection():
         port="5432",
         database="weather_db",
         user="postgres",
-        password="Andre9119")    # Change to your own pgAdmin postgres user password
+        password="***")    # Change to your own pgAdmin postgres user password
     return conn
 
 # Adds the weatherdata from the dataframe to the database
@@ -77,7 +77,7 @@ def add_weather_data(df, city):
     cur.close()
     conn.close()
 
-def request_w_d():
+def extraction():
     city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
     latitude = [59.34, 57.72, 55.61, 60.39, 64.13]
     longitude = [18.07, 11.99, 12.99, 5.32, 21.82]
@@ -89,7 +89,7 @@ def request_w_d():
         raw_file = f"//raw_{city[i]}.json"
         raw_json(raw_data, data_path + raw_file)
 
-def r_t_h():
+def transformation():
     city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
     for i in range(len(city)):
         current_path = os.path.dirname(os.path.realpath(__file__))
@@ -98,7 +98,7 @@ def r_t_h():
         harmonized_file = f"//harmonized_{city[i]}.json"
         raw_to_harmonized(data_path + raw_file, data_path + harmonized_file)
 
-def h_t_c():
+def load_data():
     city = ['Stockholm', 'Goteborg', 'Malmo', 'Bergen', 'Reykjavik']
     for i in range(len(city)):
         current_path = os.path.dirname(os.path.realpath(__file__))
@@ -111,9 +111,9 @@ def h_t_c():
 
 
 # Main program
-request_w_d()
-r_t_h()
-h_t_c()
+extraction()
+transformation()
+load_data()
 
 
 
@@ -123,14 +123,14 @@ with DAG("met", start_date=datetime(2023, 2, 2),
 
         task_1 = PythonOperator(
             task_id="request_weather_data",
-            python_callable=request_w_d
+            python_callable=extraction
         )
         task_2 = PythonOperator(
             task_id="raw_to_harmonized",
-            python_callable=r_t_h
+            python_callable=transformation
         )
         task_3 = PythonOperator(
-            task_id="harmonized_to_cleansed",
-            python_callable=h_t_c
+            task_id="harmonized_to_cleansed_and_staged",
+            python_callable=load_data
         )
         task_1  >> task_2 >> task_3
