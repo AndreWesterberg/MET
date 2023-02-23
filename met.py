@@ -49,7 +49,7 @@ def get_db_connection():
         port="5432",
         database="weather_db",
         user="postgres",
-        password="Andre9119")    # Change to your own pgAdmin postgres user password
+        password="***")    # Change to your own pgAdmin postgres user password
     return conn
 
 # Adds the weatherdata from the dataframe to the database
